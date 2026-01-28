@@ -116,7 +116,7 @@ export default function Layout() {
     <div className="shell">
       <header className="topbar">
         <div className="brand">
-          <img src="/title.png" alt="The Chester Tour" />
+          <img src="/title_black_2.png" alt="The Chester Tour" />
         </div>
         <div className="menu-wrap" ref={menuRef}>
           <button
