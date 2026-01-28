@@ -33,6 +33,7 @@ export default function Scan() {
   const lastScanRef = useRef<string>("");
   const lastScanTimeRef = useRef<number>(0);
   const addingRef = useRef(false);
+  const scannedCodesRef = useRef<Set<string>>(new Set());
 
   const canScan = useMemo(() => "BarcodeDetector" in window, []);
 
@@ -120,7 +121,9 @@ export default function Scan() {
         setErr(error.message);
         return;
       }
-      setScans((data ?? []) as ScanRow[]);
+      const nextScans = (data ?? []) as ScanRow[];
+      setScans(nextScans);
+      scannedCodesRef.current = new Set(nextScans.map((scan) => scan.ticket_code));
     })();
   }, [slotId]);
 
@@ -135,12 +138,13 @@ export default function Scan() {
     setErr(null);
 
     const personsNum = Number(persons);
-    if (!code.trim()) {
+    const normalizedCode = code.trim();
+    if (!normalizedCode) {
       setErr("Ticket code is required.");
       addingRef.current = false;
       return;
     }
-    if (scans.some((scan) => scan.ticket_code === code.trim())) {
+    if (scannedCodesRef.current.has(normalizedCode)) {
       if (!options?.fromScanner) {
         setErr("Ticket already scanned.");
       }
@@ -154,10 +158,11 @@ export default function Scan() {
     }
 
     if (isDevFakeSlotId(slotId)) {
+      scannedCodesRef.current.add(normalizedCode);
       setScans((prev) => [
         {
           id: `fake-${Date.now()}`,
-          ticket_code: code.trim(),
+          ticket_code: normalizedCode,
           kind: kindOverride ?? kind,
           persons: personsNum,
           scanned_at: new Date().toISOString(),
@@ -177,7 +182,7 @@ export default function Scan() {
       .from("ticket_scans")
       .select("id")
       .eq("slot_id", slotId)
-      .eq("ticket_code", code.trim())
+      .eq("ticket_code", normalizedCode)
       .limit(1);
 
     if (existingErr) {
@@ -195,7 +200,7 @@ export default function Scan() {
 
     const { error } = await supabase.from("ticket_scans").insert({
       slot_id: slotId,
-      ticket_code: code.trim(),
+      ticket_code: normalizedCode,
       kind: kindOverride ?? kind,
       persons: personsNum,
     });
@@ -207,20 +212,27 @@ export default function Scan() {
     }
     setTicketCode("");
     setPersons("1");
+    scannedCodesRef.current.add(normalizedCode);
     const { data } = await supabase
       .from("ticket_scans")
       .select("id, ticket_code, kind, persons, scanned_at")
       .eq("slot_id", slotId)
       .order("scanned_at", { ascending: false });
-    setScans((data ?? []) as ScanRow[]);
-    if (options?.showAlert) {
-      window.alert(`Ticket ${code.trim()} added.`);
-    }
+    const nextScans = (data ?? []) as ScanRow[];
+    setScans(nextScans);
+    scannedCodesRef.current = new Set(nextScans.map((scan) => scan.ticket_code));
+      if (options?.showAlert) {
+        window.alert(`Ticket ${normalizedCode} added.`);
+      }
     addingRef.current = false;
   };
 
   const deleteScan = async (scanId: string) => {
+    const scanToDelete = scans.find((scan) => scan.id === scanId);
     if (isDevFakeSlotId(slotId)) {
+      if (scanToDelete?.ticket_code) {
+        scannedCodesRef.current.delete(scanToDelete.ticket_code);
+      }
       setScans((prev) => prev.filter((scan) => scan.id !== scanId));
       return;
     }
@@ -229,6 +241,9 @@ export default function Scan() {
     if (error) {
       setErr(error.message);
       return;
+    }
+    if (scanToDelete?.ticket_code) {
+      scannedCodesRef.current.delete(scanToDelete.ticket_code);
     }
     setScans((prev) => prev.filter((scan) => scan.id !== scanId));
   };
