@@ -124,7 +124,11 @@ export default function Scan() {
     })();
   }, [slotId]);
 
-  const addScan = async (code: string, kindOverride?: string) => {
+  const addScan = async (
+    code: string,
+    kindOverride?: string,
+    options?: { fromScanner?: boolean; showAlert?: boolean }
+  ) => {
     if (!slotId) return;
     if (addingRef.current) return;
     addingRef.current = true;
@@ -133,6 +137,10 @@ export default function Scan() {
     const personsNum = Number(persons);
     if (!code.trim()) {
       setErr("Ticket code is required.");
+      addingRef.current = false;
+      return;
+    }
+    if (options?.fromScanner && scans.some((scan) => scan.ticket_code === code.trim())) {
       addingRef.current = false;
       return;
     }
@@ -155,6 +163,9 @@ export default function Scan() {
       ]);
       setTicketCode("");
       setPersons("1");
+      if (options?.showAlert) {
+        window.alert(`Ticket ${code.trim()} added.`);
+      }
       addingRef.current = false;
       return;
     }
@@ -179,6 +190,9 @@ export default function Scan() {
       .eq("slot_id", slotId)
       .order("scanned_at", { ascending: false });
     setScans((data ?? []) as ScanRow[]);
+    if (options?.showAlert) {
+      window.alert(`Ticket ${code.trim()} added.`);
+    }
     addingRef.current = false;
   };
 
@@ -246,7 +260,7 @@ export default function Scan() {
               setTicketCode(code);
               setScanStatus(`Detected ${code}`);
               if (autoAdd) {
-                await addScan(code, "scanned");
+                await addScan(code, "scanned", { fromScanner: true, showAlert: true });
               }
             }
           } catch {
