@@ -140,7 +140,10 @@ export default function Scan() {
       addingRef.current = false;
       return;
     }
-    if (options?.fromScanner && scans.some((scan) => scan.ticket_code === code.trim())) {
+    if (scans.some((scan) => scan.ticket_code === code.trim())) {
+      if (!options?.fromScanner) {
+        setErr("Ticket already scanned.");
+      }
       addingRef.current = false;
       return;
     }
@@ -165,6 +168,26 @@ export default function Scan() {
       setPersons("1");
       if (options?.showAlert) {
         window.alert(`Ticket ${code.trim()} added.`);
+      }
+      addingRef.current = false;
+      return;
+    }
+
+    const { data: existing, error: existingErr } = await supabase
+      .from("ticket_scans")
+      .select("id")
+      .eq("slot_id", slotId)
+      .eq("ticket_code", code.trim())
+      .limit(1);
+
+    if (existingErr) {
+      setErr(existingErr.message);
+      addingRef.current = false;
+      return;
+    }
+    if (existing?.length) {
+      if (!options?.fromScanner) {
+        setErr("Ticket already scanned.");
       }
       addingRef.current = false;
       return;
