@@ -369,7 +369,9 @@ export default function Scan() {
         )}
         {cameraOn && (
           <div style={{ marginTop: 12 }}>
-            <video ref={videoRef} style={{ width: "100%", borderRadius: 12 }} muted playsInline />
+            <div className="scan-frame">
+              <video ref={videoRef} muted playsInline />
+            </div>
             {scanStatus && <p className="muted">{scanStatus}</p>}
           </div>
         )}
