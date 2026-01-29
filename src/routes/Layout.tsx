@@ -99,7 +99,7 @@ export default function Layout() {
       return diff >= 0 && diff <= oneHourMs;
     });
 
-    if (!hasSoonTour) {
+    if (!hasSoonTour && !isDevFakeTourEnabled()) {
       window.alert("There is no tour starting within the next hour.");
       navigate("/schedule", { replace: true });
       return;

@@ -94,15 +94,18 @@ export default function Scan() {
         const diff = dt.getTime() - nowMs;
         return diff >= 0 && diff <= oneHourMs;
       });
-      if (!nextSlot) {
+      if (!nextSlot && !isDevFakeTourEnabled()) {
         setErr("There is no tour starting within the next hour.");
         setSlotId("");
         setActiveSlot(null);
         setLoading(false);
         return;
       }
-      setActiveSlot(nextSlot);
-      setSlotId(nextSlot.id);
+      const resolvedSlot = nextSlot ?? (isDevFakeTourEnabled() ? getDevFakeSlot(guideId) : null);
+      if (resolvedSlot) {
+        setActiveSlot(resolvedSlot);
+        setSlotId(resolvedSlot.id);
+      }
       setLoading(false);
     })();
   }, []);
