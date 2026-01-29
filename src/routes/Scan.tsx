@@ -232,6 +232,9 @@ export default function Scan() {
 
   const deleteScan = async (scanId: string) => {
     const scanToDelete = scans.find((scan) => scan.id === scanId);
+    if (!window.confirm("Delete this ticket scan?")) {
+      return;
+    }
     if (isDevFakeSlotId(slotId)) {
       if (scanToDelete?.ticket_code) {
         scannedCodesRef.current.delete(scanToDelete.ticket_code);
