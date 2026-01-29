@@ -257,6 +257,23 @@ a {
   padding: 24px;
 }
 
+#error-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 15, 0.92);
+  color: #fff;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  padding: 20px;
+  white-space: pre-wrap;
+  z-index: 9999;
+  display: none;
+}
+
+#error-overlay[data-visible="true"] {
+  display: block;
+}
+
 .scan-frame {
   width: min(100%, 320px);
   aspect-ratio: 1 / 1;
