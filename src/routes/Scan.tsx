@@ -1,4 +1,4 @@
-import { BrowserMultiFormatReader, NotFoundException } from "@zxing/browser";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDevFakeSlot, isDevFakeSlotId, isDevFakeTourEnabled } from "../lib/devFakeTour";
 import { supabase } from "../lib/supabase";
@@ -307,7 +307,7 @@ export default function Scan() {
             videoRef.current,
             async (result, error) => {
               if (cancelled) return;
-              if (error && !(error instanceof NotFoundException)) {
+              if (error && error.name !== "NotFoundException") {
                 setErr(error.message);
                 setCameraOn(false);
                 return;
