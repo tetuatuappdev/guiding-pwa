@@ -368,7 +368,9 @@ export default function Scan() {
         streamRef.current = null;
       }
       if (zxingRef.current) {
-        zxingRef.current.reset();
+        if (typeof zxingRef.current.reset === "function") {
+          zxingRef.current.reset();
+        }
         zxingRef.current = null;
       }
     };
