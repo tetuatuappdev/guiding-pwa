@@ -119,9 +119,6 @@ export default function Schedule() {
       }
 
       let nextRows = (slots ?? []) as SlotRow[];
-      if (onlyMine && gid && isDevFakeTourEnabled()) {
-        nextRows = [getDevFakeSlot(gid, name), ...nextRows];
-      }
       setRows(nextRows);
       setLoading(false);
     })();
