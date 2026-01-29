@@ -1,3 +1,4 @@
+import { BrowserMultiFormatReader, NotFoundException } from "@zxing/browser";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDevFakeSlot, isDevFakeSlotId, isDevFakeTourEnabled } from "../lib/devFakeTour";
 import { supabase } from "../lib/supabase";
@@ -30,12 +31,17 @@ export default function Scan() {
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const zxingRef = useRef<BrowserMultiFormatReader | null>(null);
   const lastScanRef = useRef<string>("");
   const lastScanTimeRef = useRef<number>(0);
   const addingRef = useRef(false);
   const scannedCodesRef = useRef<Set<string>>(new Set());
 
-  const canScan = useMemo(() => "BarcodeDetector" in window, []);
+  const canScan = useMemo(
+    () => typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia,
+    []
+  );
+  const canNativeScan = useMemo(() => "BarcodeDetector" in window, []);
 
   useEffect(() => {
     (async () => {
@@ -265,32 +271,63 @@ export default function Scan() {
 
     let cancelled = false;
     let detector: BarcodeDetector | null = null;
+    const reader = new BrowserMultiFormatReader();
+    zxingRef.current = reader;
 
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
+        if (!videoRef.current) {
+          throw new Error("Camera is not ready.");
+        }
+        if (canNativeScan) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false,
+          });
+          streamRef.current = stream;
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
+          detector = new BarcodeDetector({
+            formats: [
+              "qr_code",
+              "code_128",
+              "ean_13",
+              "ean_8",
+              "code_39",
+              "code_93",
+              "upc_a",
+              "upc_e",
+              "itf",
+              "codabar",
+            ],
+          });
+        } else {
+          await reader.decodeFromVideoDevice(
+            undefined,
+            videoRef.current,
+            async (result, error) => {
+              if (cancelled) return;
+              if (error && !(error instanceof NotFoundException)) {
+                setErr(error.message);
+                setCameraOn(false);
+                return;
+              }
+              if (!result) return;
+              const code = result.getText().trim();
+              const now = Date.now();
+              if (code && (code !== lastScanRef.current || now - lastScanTimeRef.current > 2000)) {
+                lastScanRef.current = code;
+                lastScanTimeRef.current = now;
+                setTicketCode(code);
+                setScanStatus(`Detected ${code}`);
+                if (autoAdd) {
+                  await addScan(code, "scanned", { fromScanner: true, showAlert: true });
+                }
+              }
+            }
+          );
+          return;
         }
-        detector = new BarcodeDetector({
-          formats: [
-            "qr_code",
-            "code_128",
-            "ean_13",
-            "ean_8",
-            "code_39",
-            "code_93",
-            "upc_a",
-            "upc_e",
-            "itf",
-            "codabar",
-          ],
-        });
 
         const scanLoop = async () => {
           if (cancelled || !videoRef.current || !detector) return;
@@ -330,8 +367,12 @@ export default function Scan() {
         streamRef.current.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
       }
+      if (zxingRef.current) {
+        zxingRef.current.reset();
+        zxingRef.current = null;
+      }
     };
-  }, [autoAdd, cameraOn, canScan]);
+  }, [autoAdd, cameraOn, canNativeScan, canScan]);
 
   return (
     <div className="page">
@@ -367,7 +408,7 @@ export default function Scan() {
         </div>
         {!canScan && (
           <p className="muted" style={{ marginTop: 10 }}>
-            Live scanning requires a browser that supports the Barcode Detector API.
+            Live scanning requires a browser with camera access enabled.
           </p>
         )}
         {cameraOn && (
