@@ -380,7 +380,9 @@ export default function Scan() {
           <label className="muted">Tour</label>
           <div className="input" style={{ display: "flex", alignItems: "center" }}>
             {activeSlot
-              ? `${activeSlot.slot_date} · ${activeSlot.slot_time?.slice(0, 5)}`
+              ? isDevFakeSlotId(activeSlot.id)
+                ? "FAKE (DEBUG)"
+                : `${activeSlot.slot_date} · ${activeSlot.slot_time?.slice(0, 5)}`
               : "No tour available"}
           </div>
           <label className="muted">Ticket code</label>
