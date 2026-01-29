@@ -307,11 +307,6 @@ export default function Scan() {
             videoRef.current,
             async (result, error) => {
               if (cancelled) return;
-              if (error && error.name !== "NotFoundException") {
-                setErr(error.message);
-                setCameraOn(false);
-                return;
-              }
               if (!result) return;
               const code = result.getText().trim();
               const now = Date.now();
