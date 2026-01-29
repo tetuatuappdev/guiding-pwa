@@ -16,6 +16,18 @@ export default function Layout() {
         navigate("/login", { replace: true });
         return;
       }
+      const { data: guides, error: guideErr } = await supabase
+        .from("guides")
+        .select("id")
+        .eq("user_id", data.session.user.id)
+        .limit(1);
+
+      if (guideErr || !guides?.length) {
+        await supabase.auth.signOut();
+        sessionStorage.setItem("authMessage", "No guide profile linked to this user.");
+        navigate("/login", { replace: true });
+        return;
+      }
       setLoading(false);
     })();
   }, [navigate]);

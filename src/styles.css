@@ -167,6 +167,11 @@ a {
   border-color: #1f3f36;
 }
 
+.auth-link {
+  color: #1f3f36;
+  font-weight: 600;
+}
+
 .list-item.selected {
   border-color: #1f3f36;
   background: rgba(31, 63, 54, 0.08);
