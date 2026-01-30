@@ -27,7 +27,7 @@ export default function Scan() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [cameraOn, setCameraOn] = useState(false);
-  const [autoAdd, setAutoAdd] = useState(true);
+  const [autoAdd] = useState(true);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -153,8 +153,14 @@ export default function Scan() {
       addingRef.current = false;
       return;
     }
+    if (!normalizedCode.startsWith("Chester walking tour sold by VIC")) {
+      addingRef.current = false;
+      return;
+    }
     if (scannedCodesRef.current.has(normalizedCode)) {
-      if (!options?.fromScanner) {
+      if (options?.fromScanner) {
+        window.alert(`Ticket ${normalizedCode} already scanned.`);
+      } else {
         setErr("Ticket already scanned.");
       }
       addingRef.current = false;
@@ -200,7 +206,9 @@ export default function Scan() {
       return;
     }
     if (existing?.length) {
-      if (!options?.fromScanner) {
+      if (options?.fromScanner) {
+        window.alert(`Ticket ${normalizedCode} already scanned.`);
+      } else {
         setErr("Ticket already scanned.");
       }
       addingRef.current = false;
@@ -394,14 +402,6 @@ export default function Scan() {
           >
             On
           </button>
-          <label className="muted" style={{ marginLeft: "auto" }}>
-            <input
-              type="checkbox"
-              checked={autoAdd}
-              onChange={(e) => setAutoAdd(e.target.checked)}
-            />{" "}
-            Auto add
-          </label>
         </div>
         {!canScan && (
           <p className="muted" style={{ marginTop: 10 }}>
