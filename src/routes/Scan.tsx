@@ -566,7 +566,7 @@ export default function Scan() {
               <div className="inline-actions">
                 {photoUrl && (
                   <a className="button ghost" href={photoUrl} target="_blank" rel="noreferrer">
-                    Photo
+                    View photo
                   </a>
                 )}
                 <span className="tag">{scan.scanned_at?.slice(11, 16) ?? "-"}</span>
