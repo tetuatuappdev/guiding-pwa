@@ -40,6 +40,7 @@ export default function Scan() {
   const streamRef = useRef<MediaStream | null>(null);
   const zxingRef = useRef<BrowserMultiFormatReader | null>(null);
   const lastScanRef = useRef<string>("");
+  const lastSeenRef = useRef<string>("");
   const lastScanTimeRef = useRef<number>(0);
   const addingRef = useRef(false);
   const scannedCodesRef = useRef<Set<string>>(new Set());
@@ -325,15 +326,21 @@ export default function Scan() {
               if (!result) return;
               const code = result.getText().trim();
               const now = Date.now();
-              if (!code || !isValidQrCode(code)) {
+              if (!code) {
                 return;
               }
               const normalized = normalizeQrCode(code);
-              if (code && (code !== lastScanRef.current || now - lastScanTimeRef.current > 2000)) {
+              if (normalized && normalized !== lastSeenRef.current) {
+                lastSeenRef.current = normalized;
+                setScanStatus(normalized);
+              }
+              if (!normalized.startsWith(QR_PREFIX)) {
+                return;
+              }
+              if (normalized && (normalized !== lastScanRef.current || now - lastScanTimeRef.current > 2000)) {
                 lastScanRef.current = normalized;
                 lastScanTimeRef.current = now;
                 setTicketCode(normalized);
-                setScanStatus(normalized);
                 if (autoAdd) {
                   await addScan(normalized, "scanned", { fromScanner: true, showAlert: true });
                 }
@@ -349,15 +356,21 @@ export default function Scan() {
             const barcodes = await detector.detect(videoRef.current);
             const now = Date.now();
             const code = barcodes?.[0]?.rawValue?.trim();
-            if (!code || !isValidQrCode(code)) {
+            if (!code) {
               return;
             }
             const normalized = normalizeQrCode(code);
-            if (code && (code !== lastScanRef.current || now - lastScanTimeRef.current > 2000)) {
+            if (normalized && normalized !== lastSeenRef.current) {
+              lastSeenRef.current = normalized;
+              setScanStatus(normalized);
+            }
+            if (!normalized.startsWith(QR_PREFIX)) {
+              return;
+            }
+            if (normalized && (normalized !== lastScanRef.current || now - lastScanTimeRef.current > 2000)) {
               lastScanRef.current = normalized;
               lastScanTimeRef.current = now;
               setTicketCode(normalized);
-              setScanStatus(normalized);
               if (autoAdd) {
                 await addScan(normalized, "scanned", { fromScanner: true, showAlert: true });
               }
