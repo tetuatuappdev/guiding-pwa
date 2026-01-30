@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { FaCalendarAlt, FaCheckSquare, FaFlag, FaHistory } from "react-icons/fa";
+import ProfileModal from "../components/ProfileModal";
+import { registerWebPush } from "../lib/webPush";
 import { getDevFakeSlot, isDevFakeTourEnabled } from "../lib/devFakeTour";
 import { supabase } from "../lib/supabase";
 
 export default function Layout() {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -28,6 +32,7 @@ export default function Layout() {
         navigate("/login", { replace: true });
         return;
       }
+      registerWebPush().catch(() => {});
       setLoading(false);
     })();
   }, [navigate]);
@@ -146,13 +151,16 @@ export default function Layout() {
           </button>
           {menuOpen && (
             <div className="menu-panel">
-              <Link to="/schedule" onClick={() => setMenuOpen(false)}>Schedule</Link>
-              <button className="menu-highlight" type="button" onClick={onStartTour}>
-                Start a tour
+              <button
+                className="menu-logout"
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setProfileOpen(true);
+                }}
+              >
+                Profile
               </button>
-              <Link to="/availability" onClick={() => setMenuOpen(false)}>Availability</Link>
-              <Link to="/history" onClick={() => setMenuOpen(false)}>History</Link>
-              <Link to="/profile" onClick={() => setMenuOpen(false)}>Profile</Link>
               <button className="menu-logout" onClick={onLogout}>Sign out</button>
             </div>
           )}
@@ -161,6 +169,25 @@ export default function Layout() {
       <main className="content">
         <Outlet />
       </main>
+      <footer className="bottom-nav">
+        <NavLink to="/schedule" className="bottom-link">
+          <FaCalendarAlt />
+          <span>Schedule</span>
+        </NavLink>
+        <NavLink to="/availability" className="bottom-link">
+          <FaCheckSquare />
+          <span>Availability</span>
+        </NavLink>
+        <button className="bottom-link" type="button" onClick={onStartTour}>
+          <FaFlag />
+          <span>Start</span>
+        </button>
+        <NavLink to="/history" className="bottom-link">
+          <FaHistory />
+          <span>History</span>
+        </NavLink>
+      </footer>
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   );
 }
