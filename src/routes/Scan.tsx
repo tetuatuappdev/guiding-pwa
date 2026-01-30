@@ -17,7 +17,7 @@ type ScanRow = {
   scanned_at: string | null;
 };
 
-const QR_PREFIX = "Chester walking tour sold by VIC";
+const QR_PREFIX = "Chester walking tour";
 
 const normalizeQrCode = (value: string) =>
   value.replace(/^\uFEFF/, "").trim().replace(/\s+/g, " ");
