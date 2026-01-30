@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { FaCalendarAlt, FaCheckSquare, FaFlag, FaHistory } from "react-icons/fa";
 import ProfileModal from "../components/ProfileModal";
 import { registerWebPush } from "../lib/webPush";
 import { getDevFakeSlot, isDevFakeTourEnabled } from "../lib/devFakeTour";
@@ -171,19 +170,39 @@ export default function Layout() {
       </main>
       <footer className="bottom-nav">
         <NavLink to="/schedule" className="bottom-link">
-          <FaCalendarAlt />
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2zm12 6H5v12h14V8zM7 10h4v4H7v-4z"
+            />
+          </svg>
           <span>Schedule</span>
         </NavLink>
         <NavLink to="/availability" className="bottom-link">
-          <FaCheckSquare />
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M3 3h18v18H3V3zm4 9l3 3 7-7-1.4-1.4L10 12.2 8.4 10.6 7 12z"
+            />
+          </svg>
           <span>Availability</span>
         </NavLink>
         <button className="bottom-link" type="button" onClick={onStartTour}>
-          <FaFlag />
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M5 2h2v20H5V2zm3 2h11l-2 4 2 4H8V4z"
+            />
+          </svg>
           <span>Start</span>
         </button>
         <NavLink to="/history" className="bottom-link">
-          <FaHistory />
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M13 3a9 9 0 1 0 8.4 12h-2.1A7 7 0 1 1 13 5v3l4-4-4-4v3zm-1 4h2v6l5 3-1 1.7-6-3.7V7z"
+            />
+          </svg>
           <span>History</span>
         </NavLink>
       </footer>
