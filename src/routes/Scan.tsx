@@ -17,6 +17,13 @@ type ScanRow = {
   scanned_at: string | null;
 };
 
+const QR_PREFIX = "Chester walking tour sold by VIC";
+
+const normalizeQrCode = (value: string) =>
+  value.replace(/^\uFEFF/, "").trim().replace(/\s+/g, " ");
+
+const isValidQrCode = (value: string) => normalizeQrCode(value).startsWith(QR_PREFIX);
+
 export default function Scan() {
   const [slotId, setSlotId] = useState<string>("");
   const [activeSlot, setActiveSlot] = useState<SlotRow | null>(null);
@@ -147,13 +154,13 @@ export default function Scan() {
     setErr(null);
 
     const personsNum = Number(persons);
-    const normalizedCode = code.trim();
+    const normalizedCode = normalizeQrCode(code);
     if (!normalizedCode) {
       setErr("Ticket code is required.");
       addingRef.current = false;
       return;
     }
-    if (!normalizedCode.startsWith("Chester walking tour sold by VIC")) {
+    if (!normalizedCode.startsWith(QR_PREFIX)) {
       addingRef.current = false;
       return;
     }
@@ -318,15 +325,16 @@ export default function Scan() {
               if (!result) return;
               const code = result.getText().trim();
               const now = Date.now();
-              if (!code || !code.startsWith("Chester walking tour sold by VIC")) {
+              if (!code || !isValidQrCode(code)) {
                 return;
               }
+              const normalized = normalizeQrCode(code);
               if (code && (code !== lastScanRef.current || now - lastScanTimeRef.current > 2000)) {
-                lastScanRef.current = code;
+                lastScanRef.current = normalized;
                 lastScanTimeRef.current = now;
-                setTicketCode(code);
+                setTicketCode(normalized);
                 if (autoAdd) {
-                  await addScan(code, "scanned", { fromScanner: true, showAlert: true });
+                  await addScan(normalized, "scanned", { fromScanner: true, showAlert: true });
                 }
               }
             }
@@ -340,15 +348,16 @@ export default function Scan() {
             const barcodes = await detector.detect(videoRef.current);
             const now = Date.now();
             const code = barcodes?.[0]?.rawValue?.trim();
-            if (!code || !code.startsWith("Chester walking tour sold by VIC")) {
+            if (!code || !isValidQrCode(code)) {
               return;
             }
+            const normalized = normalizeQrCode(code);
             if (code && (code !== lastScanRef.current || now - lastScanTimeRef.current > 2000)) {
-              lastScanRef.current = code;
+              lastScanRef.current = normalized;
               lastScanTimeRef.current = now;
-              setTicketCode(code);
+              setTicketCode(normalized);
               if (autoAdd) {
-                await addScan(code, "scanned", { fromScanner: true, showAlert: true });
+                await addScan(normalized, "scanned", { fromScanner: true, showAlert: true });
               }
             }
           } catch {
