@@ -210,6 +210,11 @@ export default function Scan() {
       ]);
       setTicketCode("");
       setPersons("1");
+      setManualPhoto(null);
+      if (manualPhotoUrl) {
+        URL.revokeObjectURL(manualPhotoUrl);
+        setManualPhotoUrl(null);
+      }
       if (options?.showAlert) {
         window.alert(`Added ${personsNum}p · ref ${normalizedCode}`);
       }
@@ -318,7 +323,7 @@ export default function Scan() {
     setErr(null);
     if (!slotId) return;
     if (!manualPhoto) {
-      setErr("A ticket photo is required.");
+      window.alert("Please take a ticket photo before adding.");
       return;
     }
     const code = `MANUAL-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
