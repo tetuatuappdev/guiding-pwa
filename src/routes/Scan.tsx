@@ -15,6 +15,7 @@ type ScanRow = {
   kind: string;
   persons: number | null;
   scanned_at: string | null;
+  photo_path?: string | null;
 };
 
 const QR_PREFIX = "Chester walking tour";
@@ -146,7 +147,7 @@ export default function Scan() {
       if (isDevFakeSlotId(slotId)) return;
       const { data, error } = await supabase
         .from("ticket_scans")
-        .select("id, ticket_code, kind, persons, scanned_at")
+        .select("id, ticket_code, kind, persons, scanned_at, photo_path")
         .eq("slot_id", slotId)
         .order("scanned_at", { ascending: false });
 
@@ -284,7 +285,7 @@ export default function Scan() {
     scannedCodesRef.current.add(normalizedCode);
     const { data } = await supabase
       .from("ticket_scans")
-      .select("id, ticket_code, kind, persons, scanned_at")
+      .select("id, ticket_code, kind, persons, scanned_at, photo_path")
       .eq("slot_id", slotId)
       .order("scanned_at", { ascending: false });
     const nextScans = (data ?? []) as ScanRow[];
@@ -548,29 +549,44 @@ export default function Scan() {
       )}
 
       <div className="list">
-        {scans.map((scan) => (
-          <div key={scan.id} className="list-item">
-            <div>
-              <strong>{scan.ticket_code}</strong> · {scan.kind === "paper" ? "VIC" : scan.kind} · {scan.persons ?? 1}p
+        {scans.map((scan) => {
+          const labelKind = scan.kind === "paper" ? "VIC" : scan.kind;
+          const showCode = scan.kind === "scanned";
+          const photoUrl = scan.photo_path
+            ? supabase.storage.from("ticket-photos").getPublicUrl(scan.photo_path).data?.publicUrl
+            : null;
+          return (
+            <div key={scan.id} className="list-item">
+              <div>
+                {showCode ? <strong>{scan.ticket_code}</strong> : <strong>{labelKind}</strong>}
+                {showCode ? ` · ${labelKind}` : ""}
+                {" · "}
+                {scan.persons ?? 1}p
+              </div>
+              <div className="inline-actions">
+                {photoUrl && (
+                  <a className="button ghost" href={photoUrl} target="_blank" rel="noreferrer">
+                    Photo
+                  </a>
+                )}
+                <span className="tag">{scan.scanned_at?.slice(11, 16) ?? "-"}</span>
+                <button
+                  className="icon-button"
+                  type="button"
+                  aria-label="Delete scan"
+                  onClick={() => deleteScan(scan.id)}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M9 3h6l1 2h4v2H4V5h4l1-2zm-2 6h2v9H7V9zm4 0h2v9h-2V9zm4 0h2v9h-2V9z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="inline-actions">
-              <span className="tag">{scan.scanned_at?.slice(11, 16) ?? "-"}</span>
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Delete scan"
-                onClick={() => deleteScan(scan.id)}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M9 3h6l1 2h4v2H4V5h4l1-2zm-2 6h2v9H7V9zm4 0h2v9h-2V9zm4 0h2v9h-2V9z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {!loading && scans.length === 0 && <p className="muted">No scans yet.</p>}
       </div>
     </div>
