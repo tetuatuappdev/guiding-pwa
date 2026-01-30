@@ -119,7 +119,6 @@ export default function HistoryDetail({ slotId: slotIdProp, onClose }: HistoryDe
                       View photo
                     </a>
                   )}
-                  <span className="tag">{scan.scanned_at?.slice(11, 16) ?? "-"}</span>
                 </div>
               </div>
             );
