@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { apiFetch } from "../lib/api";
 
@@ -15,8 +15,15 @@ type TicketScan = {
   photo_path: string | null;
 };
 
-export default function HistoryDetail() {
-  const { slotId } = useParams();
+type HistoryDetailProps = {
+  slotId?: string | null;
+  onClose?: () => void;
+};
+
+export default function HistoryDetail({ slotId: slotIdProp, onClose }: HistoryDetailProps) {
+  const navigate = useNavigate();
+  const { slotId: slotIdParam } = useParams();
+  const slotId = slotIdProp ?? slotIdParam ?? null;
   const [scans, setScans] = useState<TicketScan[]>([]);
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -74,39 +81,51 @@ export default function HistoryDetail() {
   };
 
   return (
-    <div className="page">
-      <h1>Tour details</h1>
-      {invoiceUrl && (
-        <div className="inline-actions" style={{ marginBottom: 12 }}>
-          <a className="button" href={invoiceUrl} target="_blank" rel="noreferrer">
-            Open invoice
-          </a>
+    <div className="modal-overlay" role="dialog" aria-modal="true">
+      <div className="modal-card">
+        <div className="inline-actions">
+          <h1 style={{ margin: 0 }}>Tour details</h1>
+          <button
+            className="button ghost"
+            type="button"
+            onClick={() => (onClose ? onClose() : navigate("/history", { replace: true }))}
+            style={{ marginLeft: "auto" }}
+          >
+            Close
+          </button>
         </div>
-      )}
-      {err && <p className="error">{err}</p>}
-      {loading && <p className="muted">Loading...</p>}
+        {invoiceUrl && (
+          <div className="inline-actions" style={{ marginBottom: 12 }}>
+            <a className="button" href={invoiceUrl} target="_blank" rel="noreferrer">
+              Open invoice
+            </a>
+          </div>
+        )}
+        {err && <p className="error">{err}</p>}
+        {loading && <p className="muted">Loading...</p>}
 
-      <div className="list">
-        {scans.map((scan) => {
-          const url = photoUrl(scan.photo_path);
-          return (
-            <div key={scan.id} className="list-item">
-              <div>
-                <strong>{scan.kind}</strong> · {scan.persons ?? 1}p
-                {scan.ticket_code ? ` · ${scan.ticket_code}` : ""}
+        <div className="list">
+          {scans.map((scan) => {
+            const url = photoUrl(scan.photo_path);
+            return (
+              <div key={scan.id} className="list-item">
+                <div>
+                  <strong>{scan.kind}</strong> · {scan.persons ?? 1}p
+                  {scan.ticket_code ? ` · ${scan.ticket_code}` : ""}
+                </div>
+                <div className="inline-actions">
+                  {url && (
+                    <a className="button ghost" href={url} target="_blank" rel="noreferrer">
+                      View photo
+                    </a>
+                  )}
+                  <span className="tag">{scan.scanned_at?.slice(11, 16) ?? "-"}</span>
+                </div>
               </div>
-              <div className="inline-actions">
-                {url && (
-                  <a className="button ghost" href={url} target="_blank" rel="noreferrer">
-                    View photo
-                  </a>
-                )}
-                <span className="tag">{scan.scanned_at?.slice(11, 16) ?? "-"}</span>
-              </div>
-            </div>
-          );
-        })}
-        {!loading && scans.length === 0 && <p className="muted">No scans for this tour.</p>}
+            );
+          })}
+          {!loading && scans.length === 0 && <p className="muted">No scans for this tour.</p>}
+        </div>
       </div>
     </div>
   );

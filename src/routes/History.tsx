@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import HistoryDetail from "./HistoryDetail";
 import { supabase } from "../lib/supabase";
 
 type SlotRow = {
@@ -13,10 +13,13 @@ type SlotRow = {
 
 export default function History() {
   const [rows, setRows] = useState<SlotRow[]>([]);
+  const [participantsBySlot, setParticipantsBySlot] = useState<Record<string, number>>({});
+  const [paymentBySlot, setPaymentBySlot] = useState<Record<string, string>>({});
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [onlyMine, setOnlyMine] = useState(true);
   const [guideId, setGuideId] = useState<string | null>(null);
+  const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -71,7 +74,59 @@ export default function History() {
         return;
       }
 
-      setRows((slots ?? []) as SlotRow[]);
+      const slotRows = (slots ?? []) as SlotRow[];
+      setRows(slotRows);
+
+      const slotIds = slotRows.map((slot) => slot.id);
+      if (!slotIds.length) {
+        setParticipantsBySlot({});
+        setPaymentBySlot({});
+        setLoading(false);
+        return;
+      }
+
+      const { data: scans, error: scanErr } = await supabase
+        .from("ticket_scans")
+        .select("slot_id, persons")
+        .in("slot_id", slotIds);
+
+      if (scanErr) {
+        setErr(scanErr.message);
+        setLoading(false);
+        return;
+      }
+
+      const totals: Record<string, number> = {};
+      (scans ?? []).forEach((scan) => {
+        const slotId = (scan as { slot_id: string }).slot_id;
+        const persons = (scan as { persons: number | null }).persons ?? 1;
+        totals[slotId] = (totals[slotId] ?? 0) + persons;
+      });
+      setParticipantsBySlot(totals);
+
+      if (onlyMine) {
+        const { data: payments, error: payErr } = await supabase
+          .from("tour_payments")
+          .select("slot_id, status")
+          .in("slot_id", slotIds);
+
+        if (payErr) {
+          setErr(payErr.message);
+          setLoading(false);
+          return;
+        }
+
+        const paymentMap: Record<string, string> = {};
+        (payments ?? []).forEach((payment) => {
+          const row = payment as { slot_id: string; status: string | null };
+          if (row.status) {
+            paymentMap[row.slot_id] = row.status;
+          }
+        });
+        setPaymentBySlot(paymentMap);
+      } else {
+        setPaymentBySlot({});
+      }
       setLoading(false);
     })();
   }, [onlyMine]);
@@ -93,16 +148,36 @@ export default function History() {
         </div>
       </div>
       <div className="list">
-        {rows.map((row) => (
-          <Link key={row.id} to={`/history/${row.id}`} className="list-item link-row">
+        {rows.map((row) => {
+          const paymentStatus = paymentBySlot[row.id] ?? "pending";
+          return (
+          <button
+            key={row.id}
+            type="button"
+            className="list-item link-row"
+            onClick={() => setActiveSlotId(row.id)}
+          >
             <div>
               <strong>{row.slot_date}</strong> · {row.slot_time?.slice(0, 5)}
+              <div className="muted">{participantsBySlot[row.id] ?? 0} participants</div>
             </div>
-            <span className="tag">{row.status}</span>
-          </Link>
-        ))}
+            <div className="inline-actions">
+              {!onlyMine && <span className="tag">Completed</span>}
+              {onlyMine && (
+                <span
+                  className={`tag ${paymentStatus === "paid" ? "tag-paid" : "tag-pending"}`}
+                >
+                  {paymentStatus}
+                </span>
+              )}
+            </div>
+          </button>
+        )})}
         {!loading && rows.length === 0 && <p className="muted">No history yet.</p>}
       </div>
+      {activeSlotId && (
+        <HistoryDetail slotId={activeSlotId} onClose={() => setActiveSlotId(null)} />
+      )}
     </div>
   );
 }

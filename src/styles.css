@@ -200,6 +200,10 @@ a {
 
 .link-row {
   text-decoration: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
 }
 
 .link-row:hover {
