@@ -1,4 +1,4 @@
-import { BrowserMultiFormatReader } from "@zxing/browser";
+import { BrowserQRCodeReader } from "@zxing/browser";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDevFakeSlot, isDevFakeSlotId, isDevFakeTourEnabled } from "../lib/devFakeTour";
 import { supabase } from "../lib/supabase";
@@ -49,7 +49,6 @@ export default function Scan() {
     () => typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia,
     []
   );
-  const canNativeScan = useMemo(() => "BarcodeDetector" in window, []);
 
   useEffect(() => {
     (async () => {
@@ -286,8 +285,7 @@ export default function Scan() {
     if (!cameraOn || !canScan) return;
 
     let cancelled = false;
-    let detector: BarcodeDetector | null = null;
-    const reader = new BrowserMultiFormatReader();
+    const reader = new BrowserQRCodeReader();
     zxingRef.current = reader;
 
     const startCamera = async () => {
@@ -295,67 +293,15 @@ export default function Scan() {
         if (!videoRef.current) {
           throw new Error("Camera is not ready.");
         }
-        if (canNativeScan) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-            audio: false,
-          });
-          streamRef.current = stream;
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          detector = new BarcodeDetector({
-            formats: [
-              "qr_code",
-              "code_128",
-              "ean_13",
-              "ean_8",
-              "code_39",
-              "code_93",
-              "upc_a",
-              "upc_e",
-              "itf",
-              "codabar",
-            ],
-          });
-        } else {
-          await reader.decodeFromVideoDevice(
-            undefined,
-            videoRef.current,
-            async (result, error) => {
-              if (cancelled) return;
-              if (!result) return;
-              const code = result.getText().trim();
-              const now = Date.now();
-              if (!code) {
-                return;
-              }
-              const normalized = normalizeQrCode(code);
-              if (normalized && normalized !== lastSeenRef.current) {
-                lastSeenRef.current = normalized;
-                setScanStatus(normalized);
-              }
-              if (!normalized.startsWith(QR_PREFIX)) {
-                return;
-              }
-              if (normalized && (normalized !== lastScanRef.current || now - lastScanTimeRef.current > 2000)) {
-                lastScanRef.current = normalized;
-                lastScanTimeRef.current = now;
-                setTicketCode(normalized);
-                if (autoAdd) {
-                  await addScan(normalized, "scanned", { fromScanner: true, showAlert: true });
-                }
-              }
-            }
-          );
-          return;
-        }
-
-        const scanLoop = async () => {
-          if (cancelled || !videoRef.current || !detector) return;
-          try {
-            const barcodes = await detector.detect(videoRef.current);
+        setScanStatus("Camera ready");
+        await reader.decodeFromConstraints(
+          { video: { facingMode: { ideal: "environment" } } },
+          videoRef.current,
+          async (result) => {
+            if (cancelled) return;
+            if (!result) return;
+            const code = result.getText().trim();
             const now = Date.now();
-            const code = barcodes?.[0]?.rawValue?.trim();
             if (!code) {
               return;
             }
@@ -375,12 +321,9 @@ export default function Scan() {
                 await addScan(normalized, "scanned", { fromScanner: true, showAlert: true });
               }
             }
-          } catch {
-            // ignore scan errors
           }
-          requestAnimationFrame(scanLoop);
-        };
-        requestAnimationFrame(scanLoop);
+        );
+        return;
       } catch (e: any) {
         setErr(e?.message ?? "Failed to access camera.");
         setCameraOn(false);
@@ -405,7 +348,7 @@ export default function Scan() {
         zxingRef.current = null;
       }
     };
-  }, [autoAdd, cameraOn, canNativeScan, canScan]);
+  }, [autoAdd, cameraOn, canScan]);
 
   return (
     <div className="page">
