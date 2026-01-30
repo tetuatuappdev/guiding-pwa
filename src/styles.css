@@ -115,7 +115,7 @@ a {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  font-size: 0.7rem;
+  font-size: 0.9rem;
   color: #1f1f1f;
   border: none;
   background: transparent;
@@ -124,8 +124,8 @@ a {
 }
 
 .bottom-link svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
 }
 
 .bottom-link.active {
