@@ -44,6 +44,8 @@ export default function Scan() {
   const [ticketCode, setTicketCode] = useState("");
   const kind = "scanned";
   const [persons, setPersons] = useState("1");
+  const [manualPhoto, setManualPhoto] = useState<File | null>(null);
+  const [manualPhotoUrl, setManualPhotoUrl] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
@@ -160,7 +162,12 @@ export default function Scan() {
   const addScan = async (
     code: string,
     kindOverride?: string,
-    options?: { fromScanner?: boolean; showAlert?: boolean; personsOverride?: number }
+    options?: {
+      fromScanner?: boolean;
+      showAlert?: boolean;
+      personsOverride?: number;
+      photoFile?: File | null;
+    }
   ) => {
     if (!slotId) return;
     if (addingRef.current) return;
@@ -232,11 +239,28 @@ export default function Scan() {
       return;
     }
 
+    let photoPath: string | null = null;
+    if (options?.photoFile && (kindOverride ?? kind) === "manual") {
+      const extension = options.photoFile.type.split("/").pop() || "jpg";
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+      photoPath = `manual/${slotId}/${fileName}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("ticket-photos")
+        .upload(photoPath, options.photoFile, { upsert: true });
+
+      if (uploadErr) {
+        setErr(uploadErr.message);
+        addingRef.current = false;
+        return;
+      }
+    }
+
     const { error } = await supabase.from("ticket_scans").insert({
       slot_id: slotId,
       ticket_code: normalizedCode,
       kind: kindOverride ?? kind,
       persons: personsNum,
+      photo_path: photoPath,
     });
 
     if (error) {
@@ -246,6 +270,11 @@ export default function Scan() {
     }
     setTicketCode("");
     setPersons("1");
+    setManualPhoto(null);
+    if (manualPhotoUrl) {
+      URL.revokeObjectURL(manualPhotoUrl);
+      setManualPhotoUrl(null);
+    }
     scannedCodesRef.current.add(normalizedCode);
     const { data } = await supabase
       .from("ticket_scans")
@@ -288,7 +317,7 @@ export default function Scan() {
   const onAdd = async () => {
     setErr(null);
     if (!slotId) return;
-    await addScan(ticketCode, "manual");
+    await addScan(ticketCode, "manual", { photoFile: manualPhoto });
   };
 
   useEffect(() => {
@@ -375,6 +404,14 @@ export default function Scan() {
     }
   }, [cameraOn, mode]);
 
+  useEffect(() => {
+    return () => {
+      if (manualPhotoUrl) {
+        URL.revokeObjectURL(manualPhotoUrl);
+      }
+    };
+  }, [manualPhotoUrl]);
+
   return (
     <div className="page">
       <h1>Start a tour</h1>
@@ -433,6 +470,39 @@ export default function Scan() {
           <div className="stack">
             <label className="muted">Ticket code</label>
             <input className="input" value={ticketCode} onChange={(e) => setTicketCode(e.target.value)} />
+            <label className="muted">Photo</label>
+            <div className="inline-actions">
+              <label className="button ghost" style={{ cursor: "pointer" }}>
+                Take photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    if (!file) return;
+                    if (manualPhotoUrl) URL.revokeObjectURL(manualPhotoUrl);
+                    setManualPhoto(file);
+                    setManualPhotoUrl(URL.createObjectURL(file));
+                  }}
+                />
+              </label>
+              {manualPhotoUrl && (
+                <button
+                  className="button ghost"
+                  type="button"
+                  onClick={() => {
+                    URL.revokeObjectURL(manualPhotoUrl);
+                    setManualPhoto(null);
+                    setManualPhotoUrl(null);
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            {manualPhotoUrl && <img className="photo-preview" src={manualPhotoUrl} alt="Ticket photo" />}
             <div className="grid-3">
               <div>
                 <label className="muted">Persons</label>

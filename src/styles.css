@@ -359,6 +359,12 @@ a {
   object-fit: cover;
 }
 
+.photo-preview {
+  width: min(100%, 320px);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
 @media (max-width: 720px) {
   .grid-3 {
     grid-template-columns: 1fr;
