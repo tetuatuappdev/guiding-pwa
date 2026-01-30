@@ -293,7 +293,6 @@ export default function Scan() {
         if (!videoRef.current) {
           throw new Error("Camera is not ready.");
         }
-        setScanStatus("Camera ready");
         await reader.decodeFromConstraints(
           { video: { facingMode: { ideal: "environment" } } },
           videoRef.current,
@@ -308,7 +307,7 @@ export default function Scan() {
             const normalized = normalizeQrCode(code);
             if (normalized && normalized !== lastSeenRef.current) {
               lastSeenRef.current = normalized;
-              setScanStatus(normalized);
+              setScanStatus(normalized.startsWith(QR_PREFIX) ? null : "QR unknown");
             }
             if (!normalized.startsWith(QR_PREFIX)) {
               return;
