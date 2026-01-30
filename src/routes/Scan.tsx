@@ -333,6 +333,7 @@ export default function Scan() {
                 lastScanRef.current = normalized;
                 lastScanTimeRef.current = now;
                 setTicketCode(normalized);
+                setScanStatus(normalized);
                 if (autoAdd) {
                   await addScan(normalized, "scanned", { fromScanner: true, showAlert: true });
                 }
@@ -356,6 +357,7 @@ export default function Scan() {
               lastScanRef.current = normalized;
               lastScanTimeRef.current = now;
               setTicketCode(normalized);
+              setScanStatus(normalized);
               if (autoAdd) {
                 await addScan(normalized, "scanned", { fromScanner: true, showAlert: true });
               }
@@ -426,6 +428,7 @@ export default function Scan() {
             <div className="scan-frame">
               <video ref={videoRef} muted playsInline />
             </div>
+            {scanStatus && <p className="muted">{scanStatus}</p>}
           </div>
         )}
       </div>
