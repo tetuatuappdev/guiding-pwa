@@ -22,7 +22,20 @@ const QR_PREFIX = "Chester walking tour";
 const normalizeQrCode = (value: string) =>
   value.replace(/^\uFEFF/, "").trim().replace(/\s+/g, " ");
 
-const isValidQrCode = (value: string) => normalizeQrCode(value).startsWith(QR_PREFIX);
+const parseQrPayload = (value: string) => {
+  const normalized = normalizeQrCode(value);
+  if (!normalized.toLowerCase().startsWith(QR_PREFIX.toLowerCase())) {
+    return null;
+  }
+  const match = normalized.match(
+    /^Chester walking tour sold by VIC\s*-\s*(\d+)\s*person\(s\)\s*-\s*reference\s*#(.+)$/i
+  );
+  if (!match) return null;
+  const persons = Number(match[1]);
+  const reference = match[2]?.trim();
+  if (!reference || !Number.isFinite(persons) || persons <= 0) return null;
+  return { persons, reference };
+};
 
 export default function Scan() {
   const [slotId, setSlotId] = useState<string>("");
@@ -146,21 +159,17 @@ export default function Scan() {
   const addScan = async (
     code: string,
     kindOverride?: string,
-    options?: { fromScanner?: boolean; showAlert?: boolean }
+    options?: { fromScanner?: boolean; showAlert?: boolean; personsOverride?: number }
   ) => {
     if (!slotId) return;
     if (addingRef.current) return;
     addingRef.current = true;
     setErr(null);
 
-    const personsNum = Number(persons);
+    const personsNum = options?.personsOverride ?? Number(persons);
     const normalizedCode = normalizeQrCode(code);
     if (!normalizedCode) {
       setErr("Ticket code is required.");
-      addingRef.current = false;
-      return;
-    }
-    if (!normalizedCode.startsWith(QR_PREFIX)) {
       addingRef.current = false;
       return;
     }
@@ -194,7 +203,7 @@ export default function Scan() {
       setTicketCode("");
       setPersons("1");
       if (options?.showAlert) {
-        window.alert(`Ticket ${code.trim()} added.`);
+        window.alert(`Added ${personsNum}p · ref ${normalizedCode}`);
       }
       addingRef.current = false;
       return;
@@ -245,9 +254,9 @@ export default function Scan() {
     const nextScans = (data ?? []) as ScanRow[];
     setScans(nextScans);
     scannedCodesRef.current = new Set(nextScans.map((scan) => scan.ticket_code));
-      if (options?.showAlert) {
-        window.alert(`Ticket ${normalizedCode} added.`);
-      }
+    if (options?.showAlert) {
+      window.alert(`Added ${personsNum}p · ref ${normalizedCode}`);
+    }
     addingRef.current = false;
   };
 
@@ -301,23 +310,30 @@ export default function Scan() {
             if (!result) return;
             const code = result.getText().trim();
             const now = Date.now();
-            if (!code) {
+            if (!code) return;
+            const parsed = parseQrPayload(code);
+            const display = parsed ? null : "QR unknown";
+            const normalizedRef = parsed?.reference;
+            if (normalizedRef && normalizedRef !== lastSeenRef.current) {
+              lastSeenRef.current = normalizedRef;
+              setScanStatus(display);
+            } else if (!normalizedRef) {
+              setScanStatus(display);
               return;
             }
-            const normalized = normalizeQrCode(code);
-            if (normalized && normalized !== lastSeenRef.current) {
-              lastSeenRef.current = normalized;
-              setScanStatus(normalized.startsWith(QR_PREFIX) ? null : "QR unknown");
-            }
-            if (!normalized.startsWith(QR_PREFIX)) {
-              return;
-            }
-            if (normalized && (normalized !== lastScanRef.current || now - lastScanTimeRef.current > 2000)) {
-              lastScanRef.current = normalized;
+            if (
+              normalizedRef &&
+              (normalizedRef !== lastScanRef.current || now - lastScanTimeRef.current > 2000)
+            ) {
+              lastScanRef.current = normalizedRef;
               lastScanTimeRef.current = now;
-              setTicketCode(normalized);
+              setTicketCode(normalizedRef);
               if (autoAdd) {
-                await addScan(normalized, "scanned", { fromScanner: true, showAlert: true });
+                await addScan(normalizedRef, "scanned", {
+                  fromScanner: true,
+                  showAlert: true,
+                  personsOverride: parsed?.persons,
+                });
               }
             }
           }
