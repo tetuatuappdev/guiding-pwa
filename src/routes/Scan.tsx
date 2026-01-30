@@ -42,11 +42,12 @@ export default function Scan() {
   const [activeSlot, setActiveSlot] = useState<SlotRow | null>(null);
   const [scans, setScans] = useState<ScanRow[]>([]);
   const [ticketCode, setTicketCode] = useState("");
-  const [kind, setKind] = useState("scanned");
+  const kind = "scanned";
   const [persons, setPersons] = useState("1");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [cameraOn, setCameraOn] = useState(false);
+  const [mode, setMode] = useState<"scan" | "manual">("scan");
   const [autoAdd] = useState(true);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -287,7 +288,7 @@ export default function Scan() {
   const onAdd = async () => {
     setErr(null);
     if (!slotId) return;
-    await addScan(ticketCode);
+    await addScan(ticketCode, "scanned");
   };
 
   useEffect(() => {
@@ -365,44 +366,17 @@ export default function Scan() {
     };
   }, [autoAdd, cameraOn, canScan]);
 
+  useEffect(() => {
+    if (mode === "manual" && cameraOn) {
+      setCameraOn(false);
+    }
+  }, [cameraOn, mode]);
+
   return (
     <div className="page">
       <h1>Start a tour</h1>
       {err && <p className="error">{err}</p>}
       {loading && <p className="muted">Loading...</p>}
-
-      <div className="card">
-        <div className="inline-actions">
-          <span className="muted">Camera scan</span>
-          <button
-            className={`button ${cameraOn ? "ghost" : ""}`}
-            onClick={() => setCameraOn(false)}
-            disabled={!canScan}
-          >
-            Off
-          </button>
-          <button
-            className={`button ${cameraOn ? "" : "ghost"}`}
-            onClick={() => setCameraOn(true)}
-            disabled={!canScan}
-          >
-            On
-          </button>
-        </div>
-        {!canScan && (
-          <p className="muted" style={{ marginTop: 10 }}>
-            Live scanning requires a browser with camera access enabled.
-          </p>
-        )}
-        {cameraOn && (
-          <div style={{ marginTop: 12 }}>
-            <div className="scan-frame">
-              <video ref={videoRef} muted playsInline />
-            </div>
-            {scanStatus && <p className="muted">{scanStatus}</p>}
-          </div>
-        )}
-      </div>
 
       <div className="card">
         <div className="stack">
@@ -414,27 +388,77 @@ export default function Scan() {
                 : `${activeSlot.slot_date} · ${activeSlot.slot_time?.slice(0, 5)}`
               : "No tour available"}
           </div>
-          <label className="muted">Ticket code</label>
-          <input className="input" value={ticketCode} onChange={(e) => setTicketCode(e.target.value)} />
-          <div className="grid-3">
-            <div>
-              <label className="muted">Type</label>
-              <select className="input" value={kind} onChange={(e) => setKind(e.target.value)}>
-                <option value="scanned">Scanned</option>
-                <option value="paper">Paper</option>
-                <option value="online">Online</option>
-              </select>
-            </div>
-            <div>
-              <label className="muted">Persons</label>
-              <input className="input" value={persons} onChange={(e) => setPersons(e.target.value)} />
-            </div>
-            <div className="inline-actions" style={{ alignItems: "flex-end" }}>
-              <button className="button" onClick={onAdd}>Add scan</button>
-            </div>
+          <div className="inline-actions" style={{ justifyContent: "center" }}>
+            <button
+              className={`button ${mode === "scan" ? "" : "ghost"}`}
+              type="button"
+              onClick={() => setMode("scan")}
+            >
+              Scan
+            </button>
+            <button
+              className={`button ${mode === "manual" ? "" : "ghost"}`}
+              type="button"
+              onClick={() => setMode("manual")}
+            >
+              Manual entry
+            </button>
           </div>
         </div>
       </div>
+
+      {mode === "scan" && (
+        <div className="card">
+          <div className="inline-actions">
+            <span className="muted">Camera scan</span>
+            <button
+              className={`button ${cameraOn ? "ghost" : ""}`}
+              onClick={() => setCameraOn(false)}
+              disabled={!canScan}
+            >
+              Off
+            </button>
+            <button
+              className={`button ${cameraOn ? "" : "ghost"}`}
+              onClick={() => setCameraOn(true)}
+              disabled={!canScan}
+            >
+              On
+            </button>
+          </div>
+          {!canScan && (
+            <p className="muted" style={{ marginTop: 10 }}>
+              Live scanning requires a browser with camera access enabled.
+            </p>
+          )}
+          {cameraOn && (
+            <div style={{ marginTop: 12 }}>
+              <div className="scan-frame">
+                <video ref={videoRef} muted playsInline />
+              </div>
+              {scanStatus && <p className="muted">{scanStatus}</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {mode === "manual" && (
+        <div className="card">
+          <div className="stack">
+            <label className="muted">Ticket code</label>
+            <input className="input" value={ticketCode} onChange={(e) => setTicketCode(e.target.value)} />
+            <div className="grid-3">
+              <div>
+                <label className="muted">Persons</label>
+                <input className="input" value={persons} onChange={(e) => setPersons(e.target.value)} />
+              </div>
+              <div className="inline-actions" style={{ alignItems: "flex-end" }}>
+                <button className="button" onClick={onAdd}>Add scan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="list">
         {scans.map((scan) => (
