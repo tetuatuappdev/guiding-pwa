@@ -46,7 +46,7 @@ export default function Scan() {
   const [persons, setPersons] = useState("1");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [cameraOn, setCameraOn] = useState(false);
+  const [cameraOn, setCameraOn] = useState(true);
   const [mode, setMode] = useState<"scan" | "manual">("scan");
   const [autoAdd] = useState(true);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
@@ -288,7 +288,7 @@ export default function Scan() {
   const onAdd = async () => {
     setErr(null);
     if (!slotId) return;
-    await addScan(ticketCode, "scanned");
+    await addScan(ticketCode, "manual");
   };
 
   useEffect(() => {
@@ -370,6 +370,9 @@ export default function Scan() {
     if (mode === "manual" && cameraOn) {
       setCameraOn(false);
     }
+    if (mode === "scan" && !cameraOn) {
+      setCameraOn(true);
+    }
   }, [cameraOn, mode]);
 
   return (
@@ -388,7 +391,7 @@ export default function Scan() {
                 : `${activeSlot.slot_date} · ${activeSlot.slot_time?.slice(0, 5)}`
               : "No tour available"}
           </div>
-          <div className="inline-actions" style={{ justifyContent: "center" }}>
+          <div className="inline-actions" style={{ justifyContent: "flex-start" }}>
             <button
               className={`button ${mode === "scan" ? "" : "ghost"}`}
               type="button"
@@ -409,23 +412,6 @@ export default function Scan() {
 
       {mode === "scan" && (
         <div className="card">
-          <div className="inline-actions">
-            <span className="muted">Camera scan</span>
-            <button
-              className={`button ${cameraOn ? "ghost" : ""}`}
-              onClick={() => setCameraOn(false)}
-              disabled={!canScan}
-            >
-              Off
-            </button>
-            <button
-              className={`button ${cameraOn ? "" : "ghost"}`}
-              onClick={() => setCameraOn(true)}
-              disabled={!canScan}
-            >
-              On
-            </button>
-          </div>
           {!canScan && (
             <p className="muted" style={{ marginTop: 10 }}>
               Live scanning requires a browser with camera access enabled.
@@ -453,7 +439,7 @@ export default function Scan() {
                 <input className="input" value={persons} onChange={(e) => setPersons(e.target.value)} />
               </div>
               <div className="inline-actions" style={{ alignItems: "flex-end" }}>
-                <button className="button" onClick={onAdd}>Add scan</button>
+                <button className="button" onClick={onAdd}>Add ticket</button>
               </div>
             </div>
           </div>
@@ -464,7 +450,7 @@ export default function Scan() {
         {scans.map((scan) => (
           <div key={scan.id} className="list-item">
             <div>
-              <strong>{scan.ticket_code}</strong> · {scan.kind} · {scan.persons ?? 1}p
+              <strong>{scan.ticket_code}</strong> · {scan.kind === "scanned" ? "scanned" : "manual"} · {scan.persons ?? 1}p
             </div>
             <div className="inline-actions">
               <span className="tag">{scan.scanned_at?.slice(11, 16) ?? "-"}</span>
