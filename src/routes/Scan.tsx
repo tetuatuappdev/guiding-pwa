@@ -247,7 +247,7 @@ export default function Scan() {
     }
 
     let photoPath: string | null = null;
-    if (options?.photoFile && ["paper", "online"].includes(kindOverride ?? kind)) {
+    if (options?.photoFile) {
       const extension = options.photoFile.type.split("/").pop() || "jpg";
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
       photoPath = `manual/${slotId}/${fileName}`;
