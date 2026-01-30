@@ -519,7 +519,7 @@ export default function Scan() {
                 <input className="input" value={persons} onChange={(e) => setPersons(e.target.value)} />
               </div>
               <div className="inline-actions" style={{ alignItems: "flex-end" }}>
-                <button className="button" onClick={onAdd} disabled={!manualPhoto}>
+                <button className="button" onClick={onAdd}>
                   Add ticket
                 </button>
               </div>
