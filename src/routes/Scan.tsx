@@ -317,7 +317,12 @@ export default function Scan() {
   const onAdd = async () => {
     setErr(null);
     if (!slotId) return;
-    await addScan(ticketCode, "manual", { photoFile: manualPhoto });
+    if (!manualPhoto) {
+      setErr("A ticket photo is required.");
+      return;
+    }
+    const code = `MANUAL-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    await addScan(code, "manual", { photoFile: manualPhoto });
   };
 
   useEffect(() => {
@@ -468,26 +473,26 @@ export default function Scan() {
       {mode === "manual" && (
         <div className="card">
           <div className="stack">
-            <label className="muted">Ticket code</label>
-            <input className="input" value={ticketCode} onChange={(e) => setTicketCode(e.target.value)} />
             <label className="muted">Photo</label>
             <div className="inline-actions">
-              <label className="button ghost" style={{ cursor: "pointer" }}>
-                Take photo
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    if (!file) return;
-                    if (manualPhotoUrl) URL.revokeObjectURL(manualPhotoUrl);
-                    setManualPhoto(file);
-                    setManualPhotoUrl(URL.createObjectURL(file));
-                  }}
-                />
-              </label>
+              {!manualPhotoUrl && (
+                <label className="button ghost" style={{ cursor: "pointer" }}>
+                  Take photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      if (!file) return;
+                      if (manualPhotoUrl) URL.revokeObjectURL(manualPhotoUrl);
+                      setManualPhoto(file);
+                      setManualPhotoUrl(URL.createObjectURL(file));
+                    }}
+                  />
+                </label>
+              )}
               {manualPhotoUrl && (
                 <button
                   className="button ghost"
@@ -509,7 +514,9 @@ export default function Scan() {
                 <input className="input" value={persons} onChange={(e) => setPersons(e.target.value)} />
               </div>
               <div className="inline-actions" style={{ alignItems: "flex-end" }}>
-                <button className="button" onClick={onAdd}>Add ticket</button>
+                <button className="button" onClick={onAdd} disabled={!manualPhoto}>
+                  Add ticket
+                </button>
               </div>
             </div>
           </div>
