@@ -20,6 +20,7 @@ a {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-bottom: 80px;
 }
 
 .topbar {
@@ -94,6 +95,43 @@ a {
   font-weight: 400;
 }
 
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 10px calc(12px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.08);
+  z-index: 50;
+}
+
+.bottom-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: #1f1f1f;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.bottom-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+.bottom-link.active {
+  color: #8e2742;
+}
+
 .menu-logout {
   border: none;
   padding: 8px 10px;
@@ -109,6 +147,7 @@ a {
 .content {
   padding: 0 24px 24px;
   margin-top: -40px;
+  padding-bottom: 120px;
 }
 
 .page h1 {
@@ -184,6 +223,16 @@ a {
   font-size: 0.8rem;
 }
 
+.tag-paid {
+  background: rgba(40, 150, 88, 0.18);
+  color: #1b7a45;
+}
+
+.tag-pending {
+  background: rgba(234, 140, 40, 0.2);
+  color: #9a4f0f;
+}
+
 .input {
   width: 100%;
   padding: 10px 12px;
@@ -255,6 +304,27 @@ a {
   align-items: center;
   justify-content: center;
   padding: 24px;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 12, 12, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 20;
+}
+
+.modal-card {
+  width: min(520px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 #error-overlay {
