@@ -44,6 +44,7 @@ export default function Scan() {
   const [ticketCode, setTicketCode] = useState("");
   const kind = "scanned";
   const [persons, setPersons] = useState("1");
+  const [manualSource, setManualSource] = useState<"vic" | "online">("vic");
   const [manualPhoto, setManualPhoto] = useState<File | null>(null);
   const [manualPhotoUrl, setManualPhotoUrl] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -245,7 +246,7 @@ export default function Scan() {
     }
 
     let photoPath: string | null = null;
-    if (options?.photoFile && (kindOverride ?? kind) === "manual") {
+    if (options?.photoFile && ["paper", "online"].includes(kindOverride ?? kind)) {
       const extension = options.photoFile.type.split("/").pop() || "jpg";
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
       photoPath = `manual/${slotId}/${fileName}`;
@@ -327,7 +328,8 @@ export default function Scan() {
       return;
     }
     const code = `MANUAL-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    await addScan(code, "manual", { photoFile: manualPhoto });
+    const kindOverride = manualSource === "vic" ? "paper" : "online";
+    await addScan(code, kindOverride, { photoFile: manualPhoto });
   };
 
   useEffect(() => {
@@ -513,6 +515,23 @@ export default function Scan() {
               )}
             </div>
             {manualPhotoUrl && <img className="photo-preview" src={manualPhotoUrl} alt="Ticket photo" />}
+            <label className="muted">Source</label>
+            <div className="inline-actions">
+              <button
+                className={`button ${manualSource === "vic" ? "" : "ghost"}`}
+                type="button"
+                onClick={() => setManualSource("vic")}
+              >
+                VIC
+              </button>
+              <button
+                className={`button ${manualSource === "online" ? "" : "ghost"}`}
+                type="button"
+                onClick={() => setManualSource("online")}
+              >
+                Online
+              </button>
+            </div>
             <div className="grid-3">
               <div>
                 <label className="muted">Persons</label>
@@ -532,7 +551,7 @@ export default function Scan() {
         {scans.map((scan) => (
           <div key={scan.id} className="list-item">
             <div>
-              <strong>{scan.ticket_code}</strong> · {scan.kind === "scanned" ? "scanned" : "manual"} · {scan.persons ?? 1}p
+              <strong>{scan.ticket_code}</strong> · {scan.kind === "paper" ? "VIC" : scan.kind} · {scan.persons ?? 1}p
             </div>
             <div className="inline-actions">
               <span className="tag">{scan.scanned_at?.slice(11, 16) ?? "-"}</span>
