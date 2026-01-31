@@ -15,8 +15,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Guiding";
   const options = {
     body: data.body || "",
-    icon: "/pwa-icon.png",
-    badge: "/pwa-icon.png",
+    icon: data.icon || "/icons/notify.svg",
+    badge: data.badge || "/icons/notify.svg",
     data: data.data || {},
   };
   event.waitUntil(self.registration.showNotification(title, options));
