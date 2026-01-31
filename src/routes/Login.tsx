@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { clearGuestSession, isGuestAllowed } from "../lib/guest";
 import { supabase } from "../lib/supabase";
 
 export default function Login() {
@@ -77,6 +78,22 @@ export default function Login() {
     navigate("/schedule", { replace: true });
   };
 
+  const onGuest = async () => {
+    setErr(null);
+    setLoading(true);
+    clearGuestSession();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: "sylvain.chester@gmail.com",
+      password: "12345678",
+    });
+    setLoading(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    navigate("/schedule", { replace: true });
+  };
+
   return (
     <div className="auth-shell">
       <div className="card">
@@ -99,6 +116,15 @@ export default function Login() {
           <button className="button" onClick={onLogin} disabled={loading}>
             {loading ? "Signing in..." : "Sign in"}
           </button>
+          {isGuestAllowed() && (
+            <button
+              className="button ghost"
+              type="button"
+              onClick={onGuest}
+            >
+              Enter as a guest
+            </button>
+          )}
         </div>
         {info && <p className="muted">{info}</p>}
         <p className="muted" style={{ marginTop: 12 }}>
