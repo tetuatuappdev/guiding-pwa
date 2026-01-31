@@ -12,7 +12,7 @@ type SlotRow = {
   status: string;
   guide_id: string | null;
   guide_name?: string | null;
-  guides?: {
+  guide?: {
     first_name: string | null;
     last_name: string | null;
   } | null;
@@ -58,6 +58,7 @@ const formatDateLabel = (isoDate: string) => {
 
 export default function Schedule() {
   const [rows, setRows] = useState<SlotRow[]>([]);
+  const [guideNamesById, setGuideNamesById] = useState<Record<string, string>>({});
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [onlyMine, setOnlyMine] = useState(true);
@@ -105,7 +106,7 @@ export default function Schedule() {
 
       let query = supabase
         .from("schedule_slots")
-        .select("id, slot_date, slot_time, status, guide_id, guides(first_name,last_name)")
+        .select("id, slot_date, slot_time, status, guide_id, guide:guides(first_name,last_name)")
         .gte("slot_date", todayIso())
         .order("slot_date", { ascending: true })
         .order("slot_time", { ascending: true });
@@ -126,6 +127,28 @@ export default function Schedule() {
 
       let nextRows = (slots ?? []) as SlotRow[];
       setRows(nextRows);
+      setGuideNamesById({});
+
+      if (!onlyMine) {
+        const ids = Array.from(
+          new Set(nextRows.map((slot) => slot.guide_id).filter(Boolean) as string[])
+        );
+        if (ids.length) {
+          const { data: guideRows, error: guideErr } = await supabase.rpc("get_guides_by_ids", {
+            ids,
+          });
+          if (!guideErr && Array.isArray(guideRows)) {
+            const mapped: Record<string, string> = {};
+            guideRows.forEach((row: any) => {
+              const name = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
+              if (row.id && name) {
+                mapped[row.id] = name;
+              }
+            });
+            setGuideNamesById(mapped);
+          }
+        }
+      }
       setLoading(false);
     })();
   }, [onlyMine]);
@@ -151,15 +174,19 @@ export default function Schedule() {
           const rowGuideName =
             row.guide_name
               ? row.guide_name
-              : row.guides
-              ? [row.guides.first_name, row.guides.last_name].filter(Boolean).join(" ")
+              : row.guide
+              ? [row.guide.first_name, row.guide.last_name].filter(Boolean).join(" ")
               : row.guide_id && row.guide_id === guideId
                 ? guideName
-                : null;
+                : onlyMine
+                  ? null
+                  : row.guide_id && guideNamesById[row.guide_id]
+                    ? guideNamesById[row.guide_id]
+                    : "Unassigned";
           return (
-          <div key={row.id} className="list-item">
-            <div>
-              <strong>{formatDateLabel(row.slot_date)}</strong> · {row.slot_time?.slice(0, 5)}
+            <div key={row.id} className="list-item">
+              <div>
+                <strong>{formatDateLabel(row.slot_date)}</strong> · {row.slot_time?.slice(0, 5)}
               {rowGuideName && <div className="muted">{rowGuideName}</div>}
             </div>
             <span className="tag">{row.status}</span>

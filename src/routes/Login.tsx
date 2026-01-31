@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { clearGuestSession, isGuestAllowed } from "../lib/guest";
 import { supabase } from "../lib/supabase";
+import { registerWebPush } from "../lib/webPush";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -91,6 +92,7 @@ export default function Login() {
       setErr(error.message);
       return;
     }
+    registerWebPush().catch(() => {});
     navigate("/schedule", { replace: true });
   };
 
