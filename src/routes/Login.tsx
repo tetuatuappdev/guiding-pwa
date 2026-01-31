@@ -13,12 +13,8 @@ export default function Login() {
   useEffect(() => {
     const storedEmail = localStorage.getItem("authEmail");
     const storedPassword = localStorage.getItem("authPassword");
-    const storedFirstName = localStorage.getItem("authFirstName");
-    const storedLastName = localStorage.getItem("authLastName");
     if (storedEmail) setEmail(storedEmail);
     if (storedPassword) setPassword(storedPassword);
-    if (storedFirstName) setInfo((prev) => prev ?? `Welcome back ${storedFirstName}.`);
-    if (storedLastName && !storedFirstName) setInfo((prev) => prev ?? `Welcome back.`);
   }, []);
 
   useEffect(() => {
@@ -53,44 +49,29 @@ export default function Login() {
     });
     setLoading(false);
     if (error) return setErr(error.message);
+    if (data?.session?.access_token) {
+      console.log("PWA access token:", data.session.access_token);
+    }
     localStorage.setItem("authEmail", normalizedEmail);
     localStorage.setItem("authPassword", password);
     const userId = data.user?.id;
     if (userId) {
-      const { data: guides, error: guideErr } = await supabase
-        .from("guides")
-        .select("id")
-        .eq("user_id", userId)
-        .limit(1);
-
-      if (guideErr) {
-        setErr(guideErr.message);
+      const firstName = (localStorage.getItem("authFirstName") ?? "").trim();
+      const lastName = (localStorage.getItem("authLastName") ?? "").trim();
+      if (!firstName || !lastName) {
+        setErr("Missing profile name. Please sign up again.");
         return;
       }
 
-      if (!guides?.length) {
-        const firstName = localStorage.getItem("authFirstName") ?? "";
-        const lastName = localStorage.getItem("authLastName") ?? "";
-        const { data: isAdmin, error: adminErr } = await supabase.rpc("check_admin_whitelist", {
-          email_input: normalizedEmail,
-        });
+      const { error: ensureErr } = await supabase.rpc("ensure_guide_profile", {
+        first_name_input: firstName,
+        last_name_input: lastName,
+        email_input: normalizedEmail,
+      });
 
-        if (adminErr) {
-          setErr(adminErr.message);
-          return;
-        }
-
-        const { error: insertErr } = await supabase.from("guides").insert({
-          user_id: userId,
-          first_name: firstName,
-          last_name: lastName,
-          is_admin: Boolean(isAdmin),
-        });
-
-        if (insertErr) {
-          setErr(insertErr.message);
-          return;
-        }
+      if (ensureErr) {
+        setErr(ensureErr.message);
+        return;
       }
     }
     navigate("/schedule", { replace: true });
