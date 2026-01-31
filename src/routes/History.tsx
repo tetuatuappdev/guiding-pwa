@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import HistoryDetail from "./HistoryDetail";
 import { supabase } from "../lib/supabase";
+import { isGuestSession } from "../lib/guest";
 
 type SlotRow = {
   id: string;
@@ -23,6 +24,14 @@ export default function History() {
 
   useEffect(() => {
     (async () => {
+      if (isGuestSession()) {
+        setRows([]);
+        setParticipantsBySlot({});
+        setPaymentBySlot({});
+        setGuideId("guest");
+        setLoading(false);
+        return;
+      }
       setErr(null);
       setLoading(true);
       const { data: userData } = await supabase.auth.getUser();

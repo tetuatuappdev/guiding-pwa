@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { isGuestSession } from "../lib/guest";
+import { registerWebPush } from "../lib/webPush";
 
 type GuideRow = {
   id: string;
@@ -30,9 +32,27 @@ export default function ProfileModal({ open, onClose }: ProfileModalProps) {
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pushMsg, setPushMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    if (isGuestSession()) {
+      setLoading(false);
+      setErr(null);
+      setMsg(null);
+      setGuideId(null);
+      setFirstName("Guest");
+      setLastName("");
+      setSortCode("");
+      setAccountNumber("");
+      setInitial({
+        firstName: "Guest",
+        lastName: "",
+        sortCode: "",
+        accountNumber: "",
+      });
+      return;
+    }
     (async () => {
       setErr(null);
       setLoading(true);
@@ -140,6 +160,16 @@ export default function ProfileModal({ open, onClose }: ProfileModalProps) {
     setSaving(false);
   };
 
+  const onEnableNotifications = async () => {
+    setPushMsg(null);
+    try {
+      await registerWebPush();
+      setPushMsg("Notifications enabled.");
+    } catch (e: any) {
+      setPushMsg(e?.message ?? "Failed to enable notifications.");
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -154,6 +184,7 @@ export default function ProfileModal({ open, onClose }: ProfileModalProps) {
         <p className="muted">Update your guide profile.</p>
         {err && <p className="error">{err}</p>}
         {msg && <p className="muted">{msg}</p>}
+        {pushMsg && <p className="muted">{pushMsg}</p>}
         {loading && <p className="muted">Loading...</p>}
 
         <div className="card">
@@ -168,6 +199,9 @@ export default function ProfileModal({ open, onClose }: ProfileModalProps) {
             <input className="input" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} />
             <button className="button" onClick={onSave} disabled={saving}>
               {saving ? "Saving..." : "Save"}
+            </button>
+            <button className="button ghost" type="button" onClick={onEnableNotifications}>
+              Enable notifications
             </button>
           </div>
         </div>

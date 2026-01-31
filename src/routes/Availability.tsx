@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { isGuestSession } from "../lib/guest";
 
 type DayRow = {
   dateString: string;
@@ -58,6 +59,11 @@ export default function Availability() {
 
   useEffect(() => {
     (async () => {
+      if (isGuestSession()) {
+        setLoading(false);
+        setErr(null);
+        return;
+      }
       setLoading(true);
       setErr(null);
       const { data: userData } = await supabase.auth.getUser();

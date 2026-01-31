@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getDevFakeSlot, isDevFakeTourEnabled } from "../lib/devFakeTour";
+import { isGuestSession } from "../lib/guest";
 import { supabase } from "../lib/supabase";
 
 type SlotRow = {
@@ -65,6 +66,11 @@ export default function Schedule() {
 
   useEffect(() => {
     (async () => {
+      if (isGuestSession()) {
+        setRows([]);
+        setLoading(false);
+        return;
+      }
       setErr(null);
       setLoading(true);
       const { data: userData } = await supabase.auth.getUser();

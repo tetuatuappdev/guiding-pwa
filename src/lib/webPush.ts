@@ -15,13 +15,19 @@ const urlBase64ToUint8Array = (base64String: string) => {
 };
 
 export const registerWebPush = async () => {
-  if (!VAPID_PUBLIC_KEY) return;
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  if (!VAPID_PUBLIC_KEY) {
+    throw new Error("Missing VITE_VAPID_PUBLIC_KEY.");
+  }
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    throw new Error("Push not supported on this browser.");
+  }
 
   const permission = Notification.permission === "default"
     ? await Notification.requestPermission()
     : Notification.permission;
-  if (permission !== "granted") return;
+  if (permission !== "granted") {
+    throw new Error("Notification permission not granted.");
+  }
 
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
@@ -34,7 +40,9 @@ export const registerWebPush = async () => {
 
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
-  if (!token) return;
+  if (!token) {
+    throw new Error("Missing auth session.");
+  }
 
   await apiFetch("/api/web-push/subscribe", {
     method: "POST",
@@ -44,4 +52,5 @@ export const registerWebPush = async () => {
     },
     body: JSON.stringify({ subscription }),
   });
+  return subscription;
 };

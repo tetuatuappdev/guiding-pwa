@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import ProfileModal from "../components/ProfileModal";
 import { registerWebPush } from "../lib/webPush";
+import { clearGuestSession, isGuestSession } from "../lib/guest";
 import { getDevFakeSlot, isDevFakeTourEnabled } from "../lib/devFakeTour";
 import { supabase } from "../lib/supabase";
 
@@ -14,6 +15,10 @@ export default function Layout() {
 
   useEffect(() => {
     (async () => {
+      if (isGuestSession()) {
+        setLoading(false);
+        return;
+      }
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
         navigate("/login", { replace: true });
@@ -49,6 +54,7 @@ export default function Layout() {
 
   const onLogout = async () => {
     await supabase.auth.signOut();
+    clearGuestSession();
     setMenuOpen(false);
     navigate("/login", { replace: true });
   };
