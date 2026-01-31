@@ -107,6 +107,7 @@ export default function Schedule() {
       let query = supabase
         .from("schedule_slots")
         .select("id, slot_date, slot_time, status, guide_id, guide:guides(first_name,last_name)")
+        .eq("status", "planned")
         .gte("slot_date", todayIso())
         .order("slot_date", { ascending: true })
         .order("slot_time", { ascending: true });
